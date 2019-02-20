@@ -48,7 +48,7 @@ list.Set( "DesktopWindows", "HandSelectorMenu", {
 		mdl:SetAmbientLight( Vector( -64, -64, -64 ) )
 		mdl:SetAnimated( false )
 		mdl.Angles = Angle( 0, 0, 0 )
-		mdl.Pos = Vector( -100, 0, -61 )
+		mdl.Pos = Vector( -100, 0, -6 )
 		mdl:SetLookAt( Vector( -100, 0, -22 ) )
 		
 		local applybutton = window:Add( "DButton" )
@@ -135,6 +135,10 @@ list.Set( "DesktopWindows", "HandSelectorMenu", {
 		autoassdel:SetPos( 204, 8 )
 		autoassdel:SetSize( 194, 20 )
 		autoassdel.DoClick = function()
+			-- Testing new functions
+			local pmtable = { LocalPlayer():GetModel(), LocalPlayer():GetInfo( "cl_playerbodygroups" ), LocalPlayer():GetInfoNum( "cl_playerskin", 0 ) }
+			print( table.concat( pmtable ) )
+			print( util.CRC( table.concat( pmtable ) ) )
 			return
 		end
 		
@@ -265,7 +269,9 @@ list.Set( "DesktopWindows", "HandSelectorMenu", {
 			util.PrecacheModel( model )
 			mdl:SetModel( model )
 			mdl.Entity.GetPlayerColor = function() return Vector( GetConVarString( "cl_playercolor" ) ) end
-			mdl.Entity:SetPos( Vector( -100, 0, -61 ) )
+			mdl.Entity:SetPos( Vector( -100, 0, -6 ) )
+			
+			mdl.Entity:ResetSequence( mdl.Entity:LookupSequence( "fists_idle_01" ) )
 
 			RebuildBodygroupTab()
 			RebuildAutoAssignTab()
@@ -284,7 +290,7 @@ list.Set( "DesktopWindows", "HandSelectorMenu", {
 		function mdl:DragMouseRelease() self.Pressed = false end
 
 		function mdl:LayoutEntity( ent )
-			--if ( self.bAnimated ) then self:RunAnimation() end
+			if ( self.bAnimated ) then self:RunAnimation() end
 
 			if ( self.Pressed == MOUSE_LEFT ) then
 				local mx, my = gui.MousePos()
