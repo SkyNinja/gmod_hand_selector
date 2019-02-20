@@ -5,6 +5,9 @@
 --So, if it's gonna force hands based on playermodel, it has to read and write on client,
 --and send that to the server so it can be applied. Shouldn't be too hard.
 
+--Menu based upon: https://github.com/Facepunch/garrysmod/blob/3095112/garrysmod/gamemodes/sandbox/gamemode/editor_player.lua
+--Positions of extra buttons and such meant to emulate Enhanced PlayerModel Selector 3.0 by LibertyPrime
+
 if CLIENT then
 PayHandSel = { }
 
@@ -23,9 +26,6 @@ if file.Exists( "pay_handselector/cl_hand_assignments.txt", "DATA" ) then
 	end
 	if cvarDebug then PrintTable( PayHandSel.handassignments ) end
 end
-
---Menu based upon: https://github.com/Facepunch/garrysmod/blob/3095112/garrysmod/gamemodes/sandbox/gamemode/editor_player.lua
---Positions of extra buttons and such meant to emulate Enhanced PlayerModel Selector 3.0 by LibertyPrime
 
 list.Set( "DesktopWindows", "HandSelectorMenu", {
 
@@ -46,7 +46,7 @@ list.Set( "DesktopWindows", "HandSelectorMenu", {
 		mdl:SetDirectionalLight( BOX_RIGHT, Color( 255, 160, 80, 255 ) )
 		mdl:SetDirectionalLight( BOX_LEFT, Color( 80, 160, 255, 255 ) )
 		mdl:SetAmbientLight( Vector( -64, -64, -64 ) )
-		mdl:SetAnimated( false )
+		mdl:SetAnimated( true )
 		mdl.Angles = Angle( 0, 0, 0 )
 		mdl.Pos = Vector( -100, 0, -6 )
 		mdl:SetLookAt( Vector( -100, 0, -22 ) )
@@ -69,7 +69,10 @@ list.Set( "DesktopWindows", "HandSelectorMenu", {
 		sheet:Dock( RIGHT )
 		sheet:SetSize( 430, 0 )
 		
-		local PanelBrowser = sheet:Add( "DFileBrowser" )
+		local modelsheet = sheet:Add( "DPropertySheet" )
+		sheet:AddSheet( "Model", modelsheet, "icon16/user.png" )
+		
+		local PanelBrowser = modelsheet:Add( "DFileBrowser" )
 		
 		PanelBrowser:SetPath( "GAME" )
 		PanelBrowser:SetBaseFolder( "models" )
@@ -85,7 +88,28 @@ list.Set( "DesktopWindows", "HandSelectorMenu", {
 			timer.Simple( 0.1, function() window.UpdateFromConvars() end )
 		end
 		
-		sheet:AddSheet( "Model", PanelBrowser, "icon16/user.png" )
+		local PanelSelect = modelsheet:Add( "DPanelSelect" )
+
+		for name, model in SortedPairs( list.Get( "PayHandList" ) ) do
+
+			local icon = vgui.Create( "SpawnIcon" )
+			icon:SetModel( model )
+			icon:SetSize( 64, 64 )
+			icon:SetTooltip( name )
+
+			PanelSelect:AddPanel( icon )
+			icon.DoClick = function()
+				RunConsoleCommand( "cl_handselector_model", model )
+				RunConsoleCommand( "cl_handselector_body", "0" )
+				RunConsoleCommand( "cl_handselector_skin", "0" )
+				timer.Simple( 0.1, function() window.UpdateFromConvars() end )
+			end
+
+		end
+
+		modelsheet:AddSheet( "List", PanelSelect, "icon16/user.png" )
+		
+		modelsheet:AddSheet( "Browser", PanelBrowser, "icon16/user.png" )
 		
 		local bdcontrols = window:Add( "DPanel" )
 		bdcontrols:DockPadding( 8, 8, 8, 8 )
@@ -139,6 +163,11 @@ list.Set( "DesktopWindows", "HandSelectorMenu", {
 			local pmtable = { LocalPlayer():GetModel(), LocalPlayer():GetInfo( "cl_playerbodygroups" ), LocalPlayer():GetInfoNum( "cl_playerskin", 0 ) }
 			print( table.concat( pmtable ) )
 			print( util.CRC( table.concat( pmtable ) ) )
+
+			for k, v in pairs( player_manager.AllValidModels() ) do
+				local hands = player_manager.TranslatePlayerHands( k )
+				print( hands.model )
+			end
 			return
 		end
 		
@@ -298,6 +327,9 @@ list.Set( "DesktopWindows", "HandSelectorMenu", {
 
 				self.PressX, self.PressY = gui.MousePos()
 			end
+			-- I wouldn't include this, but some models are compiled improperly.
+			-- They either don't include c_arms_anims.mdl, or have had some other
+			-- weird thing done, and don't center properly because of that.
 			if ( self.Pressed == MOUSE_MIDDLE ) then
 				local mx, my = gui.MousePos()
 				self.Pos = self.Pos - Vector( 0, 0, ( self.PressY*-(0.3) or my*-(0.3) ) - my*-(0.3) )
@@ -362,4 +394,20 @@ end
 
 hook.Add( "PlayerSetHandsModel", "ForceCustomHands", SetHands )
 
+end
+
+list.Set( "PayHandList",	"citizen",	"models/weapons/c_arms_citizen.mdl" )
+list.Set( "PayHandList",	"combine",	"models/weapons/c_arms_combine.mdl" )
+list.Set( "PayHandList",	"chell",	"models/weapons/c_arms_chell.mdl" )
+list.Set( "PayHandList",	"hev",		"models/weapons/c_arms_hev.mdl" )
+list.Set( "PayHandList",	"refugee",	"models/weapons/c_arms_refugee.mdl" )
+list.Set( "PayHandList",	"cstrike",	"models/weapons/c_arms_cstrike.mdl" )
+list.Set( "PayHandList",	"dod",		"models/weapons/c_arms_dod.mdl" )
+
+for name, model in SortedPairs( player_manager.AllValidModels() ) do
+	local hands = player_manager.TranslatePlayerHands( name )
+	--Key, value order means that this function does not work!
+	if !list.Contains( "PayHandList", hands.model ) then
+		list.Set( "PayHandList", name, hands.model )
+	end
 end
