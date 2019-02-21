@@ -163,11 +163,6 @@ list.Set( "DesktopWindows", "HandSelectorMenu", {
 			local pmtable = { LocalPlayer():GetModel(), LocalPlayer():GetInfo( "cl_playerbodygroups" ), LocalPlayer():GetInfoNum( "cl_playerskin", 0 ) }
 			print( table.concat( pmtable ) )
 			print( util.CRC( table.concat( pmtable ) ) )
-
-			for k, v in pairs( player_manager.AllValidModels() ) do
-				local hands = player_manager.TranslatePlayerHands( k )
-				print( hands.model )
-			end
 			return
 		end
 		
@@ -327,9 +322,8 @@ list.Set( "DesktopWindows", "HandSelectorMenu", {
 
 				self.PressX, self.PressY = gui.MousePos()
 			end
-			-- I wouldn't include this, but some models are compiled improperly.
-			-- They either don't include c_arms_anims.mdl, or have had some other
-			-- weird thing done, and don't center properly because of that.
+			-- I wouldn't include this, but some models don't center properly.
+			-- There are so many weird compiles out there.
 			if ( self.Pressed == MOUSE_MIDDLE ) then
 				local mx, my = gui.MousePos()
 				self.Pos = self.Pos - Vector( 0, 0, ( self.PressY*-(0.3) or my*-(0.3) ) - my*-(0.3) )
@@ -404,10 +398,14 @@ list.Set( "PayHandList",	"refugee",	"models/weapons/c_arms_refugee.mdl" )
 list.Set( "PayHandList",	"cstrike",	"models/weapons/c_arms_cstrike.mdl" )
 list.Set( "PayHandList",	"dod",		"models/weapons/c_arms_dod.mdl" )
 
-for name, model in SortedPairs( player_manager.AllValidModels() ) do
-	local hands = player_manager.TranslatePlayerHands( name )
-	--Key, value order means that this function does not work!
-	if !list.Contains( "PayHandList", hands.model ) then
-		list.Set( "PayHandList", name, hands.model )
+local function BuildHandList()
+	for name, model in SortedPairs( player_manager.AllValidModels() ) do
+		local hands = player_manager.TranslatePlayerHands( name )
+		if !list.Contains( "PayHandList", hands.model ) then
+			list.Set( "PayHandList", name, hands.model )
+		end
 	end
 end
+-- This needs to be called after all workshop items are loaded.
+-- This hook seems good.
+hook.Add( "PostGamemodeLoaded", "BuildHandList", BuildHandList )
